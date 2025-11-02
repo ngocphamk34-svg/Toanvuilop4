@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>AI Toán Vui - Lớp 4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: 'Comic Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #FFECB3, #B3E5FC);
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+  margin: 10px 0 20px 0;
+  color: #FF5722;
+  text-shadow: 1px 1px 2px #fff;
+}
+
+#problem-card {
+  display: inline-block; /* vừa nội dung */
+  padding: 15px 25px;
+  background: #FFF9C4;
+  border-radius: 20px;
+  box-shadow: 3px 3px 15px rgba(0,0,0,0.2);
+  text-align: center;
+  font-size: 2em;
+  margin: 20px 0;
+  transition: transform 0.3s;
+  max-width: 90%; /* tránh tràn ra trên điện thoại */
+  word-wrap: break-word;
+}
+
+#controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 12px 20px;
+  margin: 8px;
+  font-size: 1.1em;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+  color: #fff;
+  background-color: #FF7043;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+}
+
+button:hover { background-color: #F4511E; transform: scale(1.05); }
+
+#feedback {
+  font-size: 1.4em;
+  margin-bottom: 20px;
+  min-height: 1.6em;
+}
+
+.ok { color: green; animation: pulse 0.5s; }
+.bad { color: red; animation: shake 0.5s; }
+
+#log {
+  max-width: 720px;
+  width: 90%;
+  margin-bottom: 30px;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+select { padding:6px 10px; margin:0 6px; font-size:1em; border-radius:8px; }
+</style>
+</head>
+<body>
+
+<h1>🤖 AI Toán Vui (Lớp 4)</h1>
+
+<div>
+  <label>Loại toán:
+    <select id="mode">
+      <option value="add">Cộng</option>
+      <option value="sub">Trừ</option>
+      <option value="mul">Nhân</option>
+      <option value="div">Chia</option>
+      <option value="mix" selected>Trộn</option>
+    </select>
+  </label>
+  <label>
+    Độ khó:
+    <select id="difficulty">
+      <option value="easy">Dễ</option>
+      <option value="normal" selected>Trung bình</option>
+      <option value="hard">Khó</option>
+    </select>
+  </label>
+</div>
+
+<div id="problem-card">Nhấn "Tạo phép tính" để bắt đầu</div>
+
+<div id="controls">
+  <button id="newBtn">Tạo phép tính</button>
+  <button id="speakBtn">Đọc bài toán</button>
+  <button id="listenBtn">Bắt đầu nghe</button>
+  <button id="skipBtn">Bỏ qua</button>
+</div>
+
+<div id="feedback"></div>
+<div id="log"></div>
+
+<script>
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+function genProblem(mode,diff){
+  let a,b,question,answer,factor;
+  if(mode==='mix') mode=['add','sub','mul','div'][randInt(0,3)];
+
+  if(mode==='add'){
+    a=randInt(10,99); b=randInt(10,99);
+    if(diff==='normal'){a=randInt(50,200);b=randInt(50,200);}
+    else if(diff==='hard'){a=randInt(100,500);b=randInt(50,400);}
+    answer=a+b;
+    question=`${a} + ${b} = ?`;
+  }
+  else if(mode==='sub'){
+    a=randInt(20,99); b=randInt(10,49);
+    if(diff==='normal'){a=randInt(50,200);b=randInt(20,150);}
+    else if(diff==='hard'){a=randInt(100,500);b=randInt(50,400);}
+    if(a<b)[a,b]=[b,a];
+    answer=a-b;
+    question=`${a} - ${b} = ?`;
+  }
+  else if(mode==='mul'){
+    a=randInt(1,12); factor=randInt(1,12);
+    if(diff==='normal'){a=randInt(2,12); factor=randInt(2,12);}
+    else if(diff==='hard'){a=randInt(5,20); factor=randInt(2,12);}
+    answer=a*factor;
+    question=`${a} × ${factor} = ?`;
+  }
+  else if(mode==='div'){
+    let divisor=randInt(2,12), quotient=randInt(1,12);
+    if(diff==='normal') quotient=randInt(2,20);
+    else if(diff==='hard') quotient=randInt(5,50);
+    a=divisor*quotient; b=divisor; answer=quotient;
+    question=`${a} ÷ ${b} = ?`;
+  }
+
+  // Tạo phiên bản đọc ra tiếng Việt
+  let questionRead = question
+      .replace(/\+/g,' cộng ')
+      .replace(/\-/g,' trừ ')
+      .replace(/×/g,' nhân ')
+      .replace(/÷/g,' chia ')
+      .replace(/\=/g,' bằng ');
+
+  return {question, questionRead, answer};
+}
+
+let current=null;
+const problemEl=document.getElementById('problem-card');
+const feedbackEl=document.getElementById('feedback');
+const logEl=document.getElementById('log');
+
+function log(text){ const p=document.createElement('div'); p.textContent=`${new Date().toLocaleTimeString()} - ${text}`; logEl.prepend(p); }
+
+function normalizeNumberString(s){ s=s.replace(/[^\d\-]/g,' ').trim(); if(s.length===0) return null; const parts=s.split(/\s+/); for(let i=parts.length-1;i>=0;i--){if(/\d+/.test(parts[i])) return parseInt(parts[i],10);} const n=parseInt(s,10); return isNaN(n)?null:n; }
+
+function checkAnswer(text){
+  if(!current) return;
+  let userNum=normalizeNumberString(text);
+  if(userNum===null){ feedbackEl.textContent='Không nhận dạng được số, hãy thử lại.'; return;}
+  if(userNum===current.answer){
+    feedbackEl.innerHTML=`<span class="ok">Đúng! 🎉</span>`;
+    log(`Đúng: ${current.question} → ${userNum}`);
+    speak('Bạn trả lời đúng!');
+  }
+  else {
+    feedbackEl.innerHTML=`<span class="bad">Sai. Bạn nói ${userNum}, đáp án: ${current.answer}</span>`;
+    log(`Sai: ${current.question} → ${userNum} (Đáp: ${current.answer})`);
+    speak(`Sai, đáp án là ${current.answer}`);
+  }
+  current=null;
+  problemEl.textContent='Nhấn "Tạo phép tính" để tiếp tục';
+}
+
+function speak(text){ 
+  if(!('speechSynthesis' in window)) return; 
+  const ut=new SpeechSynthesisUtterance(text); 
+  ut.lang='vi-VN'; 
+  window.speechSynthesis.cancel(); 
+  window.speechSynthesis.speak(ut); 
+}
+
+// Tạo phép tính mới
+document.getElementById('newBtn').onclick=()=>{
+  const mode=document.getElementById('mode').value;
+  const diff=document.getElementById('difficulty').value;
+  current=genProblem(mode,diff);
+  problemEl.textContent=current.question;
+  feedbackEl.textContent='';
+};
+
+// Đọc bài toán
+document.getElementById('speakBtn').onclick=()=>{
+  if(!current){ alert('Hãy tạo phép tính trước'); return; }
+  speak(current.questionRead);
+};
+
+// Nhận diện giọng nói
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+if(SpeechRecognition){
+  recognition=new SpeechRecognition();
+  recognition.lang='vi-VN';
+  recognition.interimResults=false;
+  recognition.maxAlternatives=1;
+  recognition.onresult=(e)=>{ 
+    const text=e.results[0][0].transcript.trim(); 
+    feedbackEl.textContent=`Bạn nói: "${text}"`; 
+    checkAnswer(text);
+  }
+}
+
+document.getElementById('listenBtn').onclick=()=>{
+  if(!recognition){alert('Trình duyệt không hỗ trợ nhận diện giọng nói'); return;} 
+  if(!current){alert('Hãy tạo phép tính trước'); return;} 
+  feedbackEl.textContent='Đang lắng nghe...'; 
+  recognition.start(); 
+};
+
+// Bỏ qua
+document.getElementById('skipBtn').onclick=()=>{
+  if(!current){alert('Chưa có phép tính'); return;} 
+  log(`${current.question} (Đáp: ${current.answer})`); 
+  current=null; 
+  problemEl.textContent='Nhấn "Tạo phép tính" để tiếp tục'; 
+  feedbackEl.textContent='';
+};
+
+// Tạo phép tính đầu tiên khi load trang
+document.getElementById('newBtn').click();
+</script>
+</body>
+</html>
